@@ -1,60 +1,70 @@
 provider "azurerm" { }
 
-
-  resource "azurerm_resource_group" "terraformdemo" {
-  name     = "terraformjenkinsdemo"
-  location = "eastus"
+resource "azurerm_resource_group" "test" {
+  name     = "acctestrg"
+  location = "West US 2"
 }
 
-  resource "azurerm_virtual_network" "network" {
-  name                = "terraformjenkinsnetwork"
+resource "azurerm_virtual_network" "test" {
+  name                = "acctvn"
   address_space       = ["172.50.0.0/16"]
-  location            = "eastus"
-  resource_group_name = "${azurerm_resource_group.terraformdemo.name}"
-
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 }
 
-  resource "azurerm_subnet" "subnet" {
-  name                 = "terraformjenkinssubnet"
-  resource_group_name  = "${azurerm_resource_group.terraformdemo.name}"
-  virtual_network_name = "${azurerm_virtual_network.network.name}"
+resource "azurerm_subnet" "test" {
+  name                 = "acctsub"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
   address_prefix       = "172.50.10.0/24"
- }
-
-  resource "azurerm_public_ip" "publicip" {
-  name                 = "terraformjenkinspublicip"
-  location             = "eastus"
-  resource_group_name  = "${azurerm_resource_group.terraformdemo.name}"
-  public_ip_address_allocation = "Static"
-
 }
 
-  resource "azurerm_network_security_group" "nsg" {
-  name                = "terraformjenkinsnsg"
-  location            = "eastus"
-  resource_group_name = "${azurerm_resource_group.terraformdemo.name}"
+resource "azurerm_network_interface" "test" {
+  name                = "acctni"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
 
-  security_rule {
-        name                       = "SSH"
-        priority                   = 1001
-        direction                  = "Inbound"
-        access                     = "Allow"
-        protocol                   = "Tcp"
-        source_port_range          = "*"
-        destination_port_range     = "22"
-        source_address_prefix      = "*"
-        destination_address_prefix = "*"
-    }
-}
-
-  resource "azurerm_network_interface" "nic" {
-  name                =  "terraformjenkinsnic"
-  resource_group_name =  "${azurerm_resource_group.terraformdemo.name}"
- 
   ip_configuration {
-        name                          =  "terraformNicConfig
-        subnet_id                     =  "${azurerm_subnet.subnet.id}"
-        private_ip_address_allocation =  "static"
+    name                          = "testconfiguration1"
+    subnet_id                     = "${azurerm_subnet.test.id}"
+    private_ip_address_allocation = "dynamic"
+  }
+}
+
+resource "azurerm_virtual_machine" "test" {
+  name                  = "acctvm"
+  location              = "${azurerm_resource_group.test.location}"
+  resource_group_name   = "${azurerm_resource_group.test.name}"
+  network_interface_ids = ["${azurerm_network_interface.test.id}"]
+  vm_size               = "Standard_DS1_v2"
+
+
+  storage_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+  
+  storage_os_disk {
+    name              = "myosdisk1"
+    caching           = "ReadWrite"
+    create_option     = "FromImage"
+    managed_disk_type = "Standard_LRS"
+  }
+  
+  os_profile {
+    computer_name  = "jenkinsterraformdemo"
+    admin_username = "jenkinsadmin"
+    admin_password = "Password1234!"
   }
 
+  os_profile_linux_config {
+    disable_password_authentication = false
+  }
+
+  tags {
+    environment = "staging"
+  }
 }
+
