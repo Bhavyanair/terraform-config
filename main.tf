@@ -47,13 +47,13 @@ provider "azurerm" { }
     }
 }
 
-resource "azurerm_network_interface" "nic" {
+  resource "azurerm_network_interface" "nic" {
   name                = "terraformjenkinsnic"
   location            = "eastus"
   resource_group_name = "${azurerm_resource_group.terraformdemo.name}"
  
-        ip_configuration {
-        name                          = "terraformNicConfig
+  ip_configuration {
+        name                          = "terraformjenkinsNic
         subnet_id                     = "${azurerm_subnet.subnet.id}"
         private_ip_address_allocation = "dynamic"
   }
